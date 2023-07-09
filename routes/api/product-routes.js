@@ -7,12 +7,38 @@ const { Product, Category, Tag, ProductTag } = require('../../models');
 router.get('/', (req, res) => {
   // find all products
   // be sure to include its associated Category and Tag data
+  Product.findAll({ include: [Category, Tag]})
+  .then(dbProductData => res.json(dbProductData))
+  .catch(err => {
+    console.log(err);
+    res.status(500).json(err);
+   
 });
 
 // get one product
 router.get('/:id', (req, res) => {
   // find a single product by its `id`
   // be sure to include its associated Category and Tag data
+  const productId = req.params.id;
+
+  try {
+    const product = await Product.findOne({
+      where: { id: productId },
+      include: [
+        { model: Category },
+        { model: Tag, through: 'ProductTags' }
+      ]
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    return res.status(200).json({ product });
+  } catch (error) {
+   
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // create new product
@@ -25,6 +51,24 @@ router.post('/', (req, res) => {
       tagIds: [1, 2, 3, 4]
     }
   */
+    const { product_name, price, stock, tagIds } = req.body;
+
+    if (!product_name || !price || !stock || !tagIds) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newProduct = {
+      product_name,
+      price,
+      stock,
+      tagIds
+    };
+
+    return res.status(200).json({ message: 'Product created successfully', product: newProduct });
+  });
+  
+    
+
   Product.create(req.body)
     .then((product) => {
       // if there's product tags, we need to create pairings to bulk create in the ProductTag model
@@ -94,6 +138,22 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   // delete one product by its `id` value
+  Product.destroy({
+    where: {
+      id: req.params.id
+    }
+    .then(dbProductData => {
+      if (!dbProductData) {
+        res.status(404).json({ message: 'No product found with this id' });
+        return;
+      }
+      res.json(dbProductData);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json(err);
+    })
+  });
 });
 
 module.exports = router;
