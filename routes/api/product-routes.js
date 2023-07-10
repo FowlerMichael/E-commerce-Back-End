@@ -22,7 +22,7 @@ router.get('/:id', (req, res) => {
   const productId = req.params.id;
 
   try {
-    const product = await Product.findOne({
+    const product = Product.findOne({
       where: { id: productId },
       include: [
         { model: Category },
